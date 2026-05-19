@@ -33,6 +33,8 @@ Source: `M/Project Imperium _ Agentic Code QA Instruction Guide.pdf` (287 pages,
 
 The guide also ships split into per-section parts under `M/instructions broken/` (parts 1–13, each tagged with its section: E2e Workflow, Repo Exploration, Task Claiming, Changelog, LLM Usage, etc.). Prefer the part files for targeted reads; the monolithic PDF is for full-doc searches.
 
+**Start here:** `M/instructions broken/INDEX.md` is the distilled, reusable summary of every rule that applies to authoring (prompt rules, golden rules, rubric rules + limits + JSON shape, difficulty bands + calibration, Task 5137 structural template, reviewer checklist, Hard Architecture authoring loop). Load it before drafting; only crack a part PDF when the index points there.
+
 ## Project gist
 
 Authors create **codebase-grounded** SWE Q&A tasks for a fixed repo at a fixed commit. Each task is one of four **intents**:

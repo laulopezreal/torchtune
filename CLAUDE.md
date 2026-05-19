@@ -101,7 +101,7 @@ Working map of the codebase to ground Hard Architecture prompts. Keep this ancho
 
 ### Design tensions (gold for Hard Architecture prompts)
 
-1. **Recipe duplication** — ~700 LOC of near-identical boilerplate per recipe. Intentional: no inheritance, copy-paste-modify is the documented idiom. Cost: cross-cutting changes (e.g., new logging field) must be replicated N times.
+1. **Recipe duplication** — 850–1170 LOC of near-identical boilerplate per distributed recipe (~5,700 LOC across the six distributed scripts at BASE). Intentional: `recipe_interfaces.py` says *"torchtune strictly prohibits implementation inheritance"* and *"Minimizing code duplication is not the goal."* Cost: cross-cutting changes (e.g., new logging field) must be replicated N times.
 2. **Config-vs-code seam** — model architecture is half declared in YAML (`_component_`, hyperparams) and half hardcoded in `_model_builders.py` factories. Adding a variant means editing both.
 3. **PEFT ↔ checkpointer coupling** — every new adapter type (LoRA, DoRA, QAT-LoRA) requires changes inside the checkpointer classes to round-trip adapter state. Not pluggable.
 4. **Distributed coordination scattered** — FSDP/TP/CP setup, gradient accumulation, and barrier logic are inlined in each distributed recipe rather than centralized; `ParallelDims` covers the topology but not the lifecycle.

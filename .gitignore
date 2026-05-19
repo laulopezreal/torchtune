@@ -187,3 +187,6 @@ cover/
 
 # wandb
 wandb/
+
+# Claude Code harness scratch directories
+.claude/

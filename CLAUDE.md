@@ -69,6 +69,50 @@ Each at **Easy / Medium / Hard** difficulty.
   - BASE commit: `213f38605ff0b7b1e20f85a9e032710be04c82c9`
   - Closest reference example: Task 5137 (guide p220–282).
 
+## Torchtune architecture (at BASE `213f38605`)
+
+Working map of the codebase to ground Hard Architecture prompts. Keep this anchored to the BASE SHA — file paths and design tensions below are verified there.
+
+### Layout
+
+- `torchtune/` — library: `models/`, `modules/`, `datasets/`, `training/`, `generation/`, `rlhf/`, `config/`, `data/`, `utils/`, `_cli/`.
+- `recipes/` — standalone training scripts that implement `FTRecipeInterface`. **No shared base class**; the idiom is copy-paste-modify per recipe (full vs. lora vs. dpo vs. qat × single_device vs. distributed).
+- `recipes/configs/` — per-family YAML. `_component_:` paths drive `config.instantiate()` (see `torchtune/config/_instantiate.py`).
+
+### Core abstractions
+
+- **Recipes** — protocol-based interfaces in `torchtune/recipe_interfaces.py`: `FTRecipeInterface`, `EvalRecipeInterface`, `OrchestrationRecipeInterface`. Each recipe script (~700 LOC) implements the protocol independently.
+- **Models** — split across:
+  - `_component_builders.py` (low-level: builds `TransformerDecoder` from primitives)
+  - `_model_builders.py` (factory functions like `lora_llama3_8b()`, referenced from YAML)
+  - `_tokenizer.py` (per-family tokenizer)
+  - `_parallelism.py` (TP plans, where present)
+- **Modules** — `torchtune/modules/`:
+  - `transformer.py`, `attention.py`, `position_embeddings.py`, `rms_norm.py`, `kv_cache.py`
+  - `peft/` — LoRA / DoRA / QAT-LoRA adapters and state-dict utilities
+  - `low_precision/` — NF4 / `to_nf4` integration (currently re-exported via `torchao.dtypes.nf4tensor`)
+  - `loss/`, `tokenizers/`, `transforms/`, `model_fusion/`
+- **Datasets** — `SFTDataset` wraps a HF dataset and applies `message_transform → model_transform`; `_packed.py` does sequence packing. Multimodal preprocessing lives in `transforms/` and is invoked from the dataset side.
+- **Training** — `torchtune/training/`:
+  - `_distributed.py` — FSDP + TP + CP wiring via `ParallelDims`
+  - `checkpointing/` — `FullModelHFCheckpointer`, `FullModelMetaCheckpointer`, `FullModelTorchTuneCheckpointer`; each is adapter-aware (knows about LoRA/DoRA state-dict keys)
+  - `quantization.py` — torchao integration
+  - `metric_logging.py`, `memory.py`, `seed.py`
+
+### Design tensions (gold for Hard Architecture prompts)
+
+1. **Recipe duplication** — ~700 LOC of near-identical boilerplate per recipe. Intentional: no inheritance, copy-paste-modify is the documented idiom. Cost: cross-cutting changes (e.g., new logging field) must be replicated N times.
+2. **Config-vs-code seam** — model architecture is half declared in YAML (`_component_`, hyperparams) and half hardcoded in `_model_builders.py` factories. Adding a variant means editing both.
+3. **PEFT ↔ checkpointer coupling** — every new adapter type (LoRA, DoRA, QAT-LoRA) requires changes inside the checkpointer classes to round-trip adapter state. Not pluggable.
+4. **Distributed coordination scattered** — FSDP/TP/CP setup, gradient accumulation, and barrier logic are inlined in each distributed recipe rather than centralized; `ParallelDims` covers the topology but not the lifecycle.
+5. **Dataset transform pipeline** — vision/multimodal preprocessing couples the dataset to a specific model's image transform (e.g., CLIP patch size, tile layout). Swapping vision encoders ripples back into dataset construction.
+6. **Quantization integration is fragmented** — three integration points: builder-time (model factory wraps modules), recipe-time (post-load conversion), and QAT (training-time fake-quant). No single seam.
+
+### Prompt-authoring notes
+
+- The architecture task (6600) targets one of the above tensions. Hard prompts must require *cross-file* reasoning (recipe ↔ module ↔ training ↔ checkpointer) and have answers that aren't obtainable from generic LLM knowledge.
+- "8 candidate Hard Architecture prompts" are being drafted against these tensions — keep candidates here as they stabilize.
+
 ## Pointers for future sessions
 
 - Container is ephemeral; only what's committed persists. The `M/` folder is committed and readable.

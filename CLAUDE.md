@@ -70,6 +70,7 @@ Each at **Easy / Medium / Hard** difficulty.
   - Language: Python
   - BASE commit: `213f38605ff0b7b1e20f85a9e032710be04c82c9`
   - Closest reference example: Task 5137 (guide p220–282).
+  - **Session log:** `M/task-6600/session-log.md` — read this before continuing. Captures the catalyst we picked (FP8 QAT, tension #6 quantization fragmentation), the journey through dead ends (ORPO recipe-duplication, IA3 PEFT↔checkpointer), three calibration runs, and the locked prompt. Run answers preserved as `run-{1,2,3}-answer.md`. Current prompt in `prompt-current.md`. Next concrete step is rubric design.
 
 ## Torchtune architecture (at BASE `213f38605`)
 

@@ -1,0 +1,5 @@
+I want to add Prefix Tuning to torchtune as a third PEFT method alongside the existing LoRA and DoRA support. Prefix tuning is the Li & Liang (2021) approach: a small number of learnable prefix vectors per transformer layer that the model attends to during training and inference, while base weights stay frozen. The adapter state is a new tensor per layer; nothing wraps any existing nn.Linear. Single-device and distributed. I want the design to still make sense when the next not-LoRA-shaped adapter shows up. This is my first contribution.
+
+Walk me through what implementing this actually requires. I'm trying to follow the contribution rules -- recipes stay readable as self-contained scripts, no implementation inheritance. I know the README says torchtune is wound down; assume for this question that the codebase will be forked and actively maintained going forward.
+
+Give me an honest read on whether the codebase shape makes this addition clean or whether I'd be adding pain future contributors will inherit. If it's the latter, propose what to fix first.

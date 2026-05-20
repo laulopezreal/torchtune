@@ -197,7 +197,7 @@
     "id": "reasoning-3006",
     "tag": "reasoning",
     "weight": "bonus",
-    "description": "Identifies the FSDP × small-per-layer-parameter interaction: prefix tensors are small relative to layer weights, the sharding policy shards on TransformerSelfAttentionLayer boundaries, and the meta-init + to_empty path requires the new module to implement to_empty (with DoRALinear.to_empty cited as the template).",
+    "description": "Identifies the FSDP x small-per-layer-parameter interaction: prefix tensors are small relative to layer weights, the sharding policy shards on TransformerSelfAttentionLayer boundaries, and the meta-init + to_empty path requires the new module to implement to_empty (with DoRALinear.to_empty cited as the template).",
     "rationale": "Distributed correctness consideration. Run 1 raised this as honest uncertainty; only senior contributors do that.",
     "dependent_on": []
   },

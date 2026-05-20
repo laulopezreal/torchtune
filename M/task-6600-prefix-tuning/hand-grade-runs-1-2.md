@@ -1,99 +1,80 @@
-# Hand-grade of Runs 1 and 2 against rubric v1
+# Hand-grade of Runs 1 and 2 against rubric v2 (tightened)
 
 **Date:** 2026-05-20
-**Rubric:** `/home/user/torchtune/M/pytorch-torchtune-architecture/rubric.json` (34 criteria)
+**Rubric:** `/home/user/torchtune/M/pytorch-torchtune-architecture/rubric.json` (36 criteria, post-tightening)
 **Method:** strict pass/fail per criterion description
+
+## Tightening applied vs v1
+
+1. **Added 2 critical reasoning criteria:**
+   - 1011 Sequence-length change + ≥2 downstream consequences
+   - 1012 No-inheritance specifically blocks subclassing core attention modules
+2. **Demoted 2 critical completeness to bonus** (recipe template, convert_weights — both grep-trivial):
+   - Former 2005 → 3008
+   - Former 2006 → 3009
 
 ## Summary
 
-| Run | Critical reasoning | Critical completeness | Critical total | Bonus | Penalty | Net |
-|---|---|---|---|---|---|---|
-| Run 1 | 6/10 (60%) | 7/7 (100%) | 13/17 (76%) | 5.5/7 (79%) | 0 | ~72% |
-| Run 2 | 7/10 (70%) | 6/7 (86%) | 13/17 (76%) | 3/7 (43%) | 0 | ~70% |
+| Run | Critical reasoning | Critical completeness | Critical total | Bonus | Style | Penalty | Net |
+|---|---|---|---|---|---|---|---|
+| Run 1 | 6/12 (50%) | 5/5 (100%) | 11/17 (65%) | 7.5/9 (83%) | 2/2 | 0 | ~68% |
+| Run 2 | 7/12 (58%) | 4/5 (80%) | 11/17 (65%) | 5/9 (56%) | 2/2 | 0 | ~63% |
 
-**Verdict:** Both runs converge at ~70–76%. Slightly above the session-log target of 50–55% for Hard band.
+Improvement vs v1 rubric: Run 1 72% → 68%, Run 2 70% → 63%.
 
-## Critical reasoning — pass/fail breakdown
-
-| # | Criterion | Run 1 | Run 2 |
-|---|---|---|---|
-| 1001 | Polymorphic seam + many LoRA-string-matched seams tension | ✓ | ✓ |
-| 1002 | Substring filter + ≥3 duplications | ✓ | ✓ |
-| 1003 | MultiHeadAttention has no K/V extension seam | ✓ | ✓ |
-| 1004 | Attachment-point design with ≥2 options compared | ✓ (A/B/C) | ✓ (kwarg vs subclass) |
-| 1005 | **RoPE-on-prefix design fork** | ✗ | ✗ |
-| 1006 | KV cache pre-fill vs regen with tradeoff | ✗ (no comparison) | ✓ (explicit (a)/(b)) |
-| 1007 | **PackedDataset position-IDs** | ✗ (mask only) | ✗ |
-| 1008 | **Loss masking** | ✗ | ✗ |
-| 1009 | No-inheritance honored | ✓ | ✓ |
-| 1010 | get_merged_lora_ckpt unconditional + no merge for prefix | ✓ | ✓ |
-
-**The three sequence-level criteria (1005 RoPE, 1007 packing, 1008 loss) fail on both runs.** This is the catalyst's structural discrimination working.
-
-## Critical completeness
+## Critical reasoning fails (both runs)
 
 | # | Criterion | Run 1 | Run 2 |
 |---|---|---|---|
-| 2001 | peft/_utils.py | ✓ | ✓ |
-| 2002 | LoRALinear + DoRALinear + nn.Linear wrap | ✓ | ✓ |
-| 2003 | MultiHeadAttention + TransformerSelfAttentionLayer | ✓ | ✓ |
-| 2004 | KVCache with shape/cache_pos | ✓ | ✓ |
-| 2005 | lora_finetune_*.py as template + 2 new recipes | ✓ | ✓ |
-| 2006 | convert_weights.py tune_to_peft | ✓ | ✓ |
-| 2007 | generation/_generation.py + prefix at decode | ✓ | ✗ |
+| 1005 | RoPE-on-prefix design fork | ✗ | ✗ |
+| 1006 | KV cache pre-fill vs regen tradeoff | ✗ (no comparison) | ✓ |
+| 1007 | PackedDataset position-IDs | ✗ (mask only) | ✗ |
+| 1008 | Loss masking | ✗ | ✗ |
+| 1011 | Sequence-length + ≥2 consequences | ✗ (mask only) | ✗ |
+| 1012 | No-inheritance blocks core-attention subclassing | ✗ | ✗ (Run 2 explicitly accepts subclassing) |
 
-## Bonus
+**Five critical reasoning items consistently missed.** The 1012 strict fail on Run 2 is notable — Run 2 says "subclass MultiHeadAttention (acceptable, mirrors how LoRALinear is a peer of nn.Linear)" which is exactly the failure mode the criterion targets.
 
-| # | Criterion | Run 1 | Run 2 |
-|---|---|---|---|
-| 3001 | 35-site adapter_cls + post-construction attachment | partial (0.5) | ✗ |
-| 3002 | hasattr post-load init pattern | ✗ | ✓ |
-| 3003 | HF PrefixTuningConfig | ✓ | ✓ |
-| 3004 | GQA expansion shape ordering | ✓ | ✗ |
-| 3005 | flex BlockMask incompatibility | ✓ | ✗ |
-| 3006 | FSDP × small per-layer + to_empty | ✓ | ✓ |
-| 3007 | Sequenced 3+ PR plan | ✓ | ✗ (Path B bundles) |
+## What both runs DO get right
 
-Run 1 wins on micro-discriminators (GQA shape, BlockMask, PR sequencing). Run 2 wins on hasattr-pattern recognition.
+| # | Criterion | Both |
+|---|---|---|
+| 1001 | Polymorphic seam vs many LoRA-coupled seams | ✓ |
+| 1002 | Substring filter + ≥3 duplications | ✓ |
+| 1003 | MultiHeadAttention no K/V extension point | ✓ |
+| 1004 | Attachment-point design with ≥2 options | ✓ |
+| 1009 | No-inheritance honored in proposal | ✓ |
+| 1010 | get_merged_lora_ckpt unconditional + no merge for prefix | ✓ |
+| 2001 | peft/_utils.py | ✓ |
+| 2002 | LoRALinear + DoRALinear + nn.Linear wrap | ✓ |
+| 2003 | MultiHeadAttention + TransformerSelfAttentionLayer | ✓ |
+| 2004 | KVCache + shape/cache_pos | ✓ |
 
-## Penalties triggered
+## Calibration verdict
 
-Neither run triggers any penalty. Both:
-- Use Protocol + composition (no base class)
-- Respect copy-paste-modify policy
-- Avoid `lora_prefix` naming hack (Run 2 explicitly warns against it)
-- Locate checkpointer pain at call sites / converter helpers, not the checkpointer classes
-- Cite file:line throughout
+Hand-grade Run 1 68%, Run 2 63%. Step 5 typically 5–10pt stricter:
+- **Projected Step-5 pass rate: 55–60%**
+- Per INDEX.md Hard band: 0–35% (strict)
+- Per session log: 35–55% (acceptable for greppable catalysts)
 
-## Diagnosis vs. target
+Current projection sits at the **upper edge of acceptable for Hard**. Slightly higher than the session-log target but defensible:
 
-Per session-log methodology:
-- Target Run 1 hand-grade: ~60–70%
-- Target Run 2 hand-grade: ~45–55% (Run 2 is typically the "second strongest")
-- Step-5 typically 5–10pt stricter than hand-grade
-- Acceptable Step-5 average: 35–55% (upper-Hard / lower-Medium)
+1. The catalyst has zero greppable scaffolding — strong models still find the right files because they reason about PEFT structure, not because they grep "prefix"
+2. Five critical reasoning items reproducibly fail across both runs — the discrimination IS happening at the right place (design depth, not file naming)
+3. Both runs avoid all 8 penalty traps — they're genuinely good answers
 
-Current state:
-- Run 1: 72% — slightly above target
-- Run 2: 70% — well above target
+The remaining gap to 50–55% target would require either:
+- Adding 1–2 more critical reasoning criteria that even strong answers reliably miss (diminishing returns — answers like Runs 1 and 2 are already missing 5 of 12)
+- Tightening completeness further (risk: golden answer can't hit 100% critical, breaks rubric)
 
-**The critical completeness section is what's keeping the score high** — both runs hit 86–100% of file-naming criteria. That's expected (these are core files that any thorough answer will find), but it inflates the net score.
+**Recommendation:** lock the rubric here, draft the golden answer that hits 100% critical, then run Step 5 to see where it actually lands. The golden's structural template is:
 
-## Options to tighten
-
-1. **Add 2 more critical reasoning criteria** that both runs fail. Candidates:
-   - "Identifies the sequence-length change implication AND traces ≥2 downstream consequences" (mask, position IDs, loss accounting, tokens-seen metric, packing) — Run 1 partial (mask only); Run 2 ✗
-   - "Identifies that the no-inheritance policy specifically blocks subclassing core attention modules" — both runs ✗ (Run 2 explicitly considers subclassing as acceptable)
-   - "Identifies the `_is_dora` substring sniff in recipe code as a 4th duplication of the LoRA-substring assumption, particularly insidious because it leaks into user-facing recipes" — Run 1 ✗; Run 2 ✓
-
-2. **Demote 1–2 critical completeness to bonus** (recipe template, convert_weights — both grep-trivial for any thorough answer) — this rebalances toward reasoning-heavy critical.
-
-3. **Combine 1005–1008 into a single all-or-nothing "sequence-level engagement" criterion** — runs already fail all four; combining doesn't change the math but tightens the rubric narrative.
-
-4. **Accept the band**. Per session log, slightly above 50–55% hand-grade is "acceptable given catalyst limitations." Prefix Tuning is less greppable than FP8 QAT and produces more reproducible misses; the rubric does discriminate them at the design-question level.
-
-## Recommendation
-
-Apply Option 1 (add the 2 sequence-length-consequences + no-inheritance-blocks-core-attention criteria). Both runs fail both → drops critical reasoning to 6/12 (50%) and 7/12 (58%). Combined critical drops to ~62–65%. Net lands at ~62–68%. That's at the methodology's upper-Hard boundary.
-
-Apply Option 4 if the user is satisfied with current 70–72%.
+1. TL;DR (3 sentences)
+2. Current PEFT contract — name the 7 cooperating pieces (polymorphic seam + 6 LoRA-coupled seams)
+3. What prefix tuning specifically breaks — walk the 5 design forks (attachment, RoPE, KV-cache, packing, loss)
+4. Sequence-length consequences — trace mask + position IDs + loss + tokens-seen + packing
+5. Two implementation paths (refactor-first vs ship-it-now) with PR sequencing
+6. The minimal refactor that lets future not-LoRA-shaped adapters land cleanly
+7. Honest read: clean or painful? Verdict + fix-first proposals
+8. Cross-cutting limitations to flag in PR description (DoRA+prefix, HF PEFT export, flex attention, FSDP small param)
+9. Files to touch (new + modified + intentionally untouched)

@@ -79,6 +79,22 @@
     "rationale": "Connects two facts: the unconditional call site, and the structural impossibility of merging prefix tuning. Strong answers identify both; weak answers stop at one.",
     "dependent_on": []
   },
+  {
+    "id": "reasoning-1011",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Identifies that prefix tuning changes the sequence length seen by the model (real_seq_len -> prefix_len + real_seq_len) AND traces AT LEAST TWO downstream consequences from among: attention mask shape (extra prefix_len columns on the left), position-ID generation (real-token positions shifted), loss accounting / tokens-seen metric (prefix tokens not real data), PackedDataset per-sample position resets (assumption breaks), gradient accumulation accounting.",
+    "rationale": "The sequence-length change is the single most cross-cutting consequence of prefix tuning and reproducibly under-addressed by both runs. Tracing only one consequence (e.g., 'fix the mask') is Medium-band; tracing two or more shows the answerer thought through the propagation.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-1012",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Identifies that the no-implementation-inheritance policy specifically blocks subclassing core attention or transformer modules (MultiHeadAttention, TransformerSelfAttentionLayer), while permitting adapter modules to inherit from each other (DoRALinear from LoRALinear is the precedent). Uses this distinction to rule out 'subclass MultiHeadAttention' as a valid design option, not just to prefer against it.",
+    "rationale": "The no-inheritance rule has nuance: modules can inherit modules, but core infra can't be replicated by subclassing. Strong answers articulate this; weak answers treat 'subclass attention' as a fine option that just happens to be ugly.",
+    "dependent_on": ["reasoning-1009"]
+  },
 
   {
     "id": "completeness-2001",
@@ -113,19 +129,19 @@
     "dependent_on": []
   },
   {
-    "id": "completeness-2005",
+    "id": "completeness-3008",
     "tag": "completeness",
-    "weight": "critical",
+    "weight": "bonus",
     "description": "Names recipes/lora_finetune_distributed.py (or recipes/lora_finetune_single_device.py) as the recipe template to copy-paste-modify under the no-implementation-inheritance policy, AND notes that two new recipes are needed (single-device + distributed) rather than folding into existing ones.",
-    "rationale": "Required to demonstrate awareness of the recipe-duplication policy as it applies here.",
+    "rationale": "Demonstrates awareness of the recipe-duplication policy as it applies here. Demoted from critical because greppable for any thorough answer.",
     "dependent_on": []
   },
   {
-    "id": "completeness-2006",
+    "id": "completeness-3009",
     "tag": "completeness",
-    "weight": "critical",
+    "weight": "bonus",
     "description": "Names torchtune/models/convert_weights.py (specifically tune_to_peft_adapter_weights and/or tune_to_peft_adapter_config) as the HuggingFace PEFT export path that is LoRA-specific and would need either a new conversion path or an explicit skip for prefix tuning.",
-    "rationale": "Required to articulate the HF PEFT export incompatibility. Greppable but specific enough that weak answers miss it.",
+    "rationale": "Articulates the HF PEFT export incompatibility. Demoted from critical because greppable.",
     "dependent_on": []
   },
   {

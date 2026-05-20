@@ -1,7 +1,7 @@
 # Hand-grade of Runs 1 and 2 against rubric v2 (tightened)
 
 **Date:** 2026-05-20
-**Rubric:** `/home/user/torchtune/M/pytorch-torchtune-architecture/rubric.json` (36 criteria, post-tightening)
+**Rubric:** `/home/user/torchtune/m/pytorch-torchtune-architecture/rubric.json` (36 criteria, post-tightening)
 **Method:** strict pass/fail per criterion description
 
 ## Tightening applied vs v1

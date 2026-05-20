@@ -3,16 +3,16 @@
 **Last updated:** 2026-05-20
 **Status:** Prompt locked. Rubric design pending. No QC or Step 5 run yet.
 **Task spec:** Architecture & System Design / Hard / Python / BASE `213f38605ff0b7b1e20f85a9e032710be04c82c9`.
-**Closest reference example:** Task 5137 (guide p220–282, distilled in `M/instructions broken/INDEX.md`).
+**Closest reference example:** Task 5137 (guide p220–282, distilled in `m/instructions broken/INDEX.md`).
 
 ---
 
 ## Quick start for the next session
 
-1. **Read first:** `M/instructions broken/INDEX.md` (rubric mechanics, prompt rules, Hard authoring loop).
-2. **Then the methodology:** `M/calibration-methodology.md` — the reusable subagent-testing playbook this session evolved. Read before launching any further calibration runs.
+1. **Read first:** `m/instructions broken/INDEX.md` (rubric mechanics, prompt rules, Hard authoring loop).
+2. **Then the methodology:** `m/calibration-methodology.md` — the reusable subagent-testing playbook this session evolved. Read before launching any further calibration runs.
 3. **Then this file** for context on what we tried, what we picked, and why.
-4. **Then:** `M/task-6600/prompt-current.md` (the locked prompt) and the three `run-N-answer.md` files (calibration evidence).
+4. **Then:** `m/task-6600/prompt-current.md` (the locked prompt) and the three `run-N-answer.md` files (calibration evidence).
 5. **Next concrete step:** draft `rubric.json` (target ~30 criteria) calibrated against the three runs. See the "Rubric design guidance" section below.
 
 ---
@@ -25,7 +25,7 @@
 
 ### The locked prompt
 
-See `M/task-6600/prompt-current.md`. ~125 words. Asks the answerer to walk through implementing FP8 QAT, judge whether the codebase shape makes it clean or painful, and propose what to fix first — under the no-inheritance constraint and assuming an active-fork future.
+See `m/task-6600/prompt-current.md`. ~125 words. Asks the answerer to walk through implementing FP8 QAT, judge whether the codebase shape makes it clean or painful, and propose what to fix first — under the no-inheritance constraint and assuming an active-fork future.
 
 ### Calibration data
 
@@ -209,9 +209,9 @@ Distilled from the three calibration runs.
 
 In order:
 
-1. Read `M/instructions broken/INDEX.md` (full rubric/prompt rules).
+1. Read `m/instructions broken/INDEX.md` (full rubric/prompt rules).
 2. Read this file end to end.
-3. Open `M/task-6600/prompt-current.md` and the three `run-N-answer.md` files (Run 1 and Run 3 are the most important).
+3. Open `m/task-6600/prompt-current.md` and the three `run-N-answer.md` files (Run 1 and Run 3 are the most important).
 4. Draft `rubric.json` against the structure above. Aim for 28–32 criteria.
 5. Score Run 1 and Run 3 against the draft rubric by hand. Adjust until calibration check above is satisfied.
 6. Write the final `golden_answer.md` using the structural template. It must earn 100% critical + at least one bonus + zero penalties.
@@ -224,7 +224,7 @@ In order:
 
 ---
 
-## Files in `M/task-6600/`
+## Files in `m/task-6600/`
 
 - `session-log.md` — this file
 - `prompt-current.md` — the locked prompt

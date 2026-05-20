@@ -1,6 +1,6 @@
 # Project Imperium — Instructions Index (distilled for reuse)
 
-Source: `M/instructions broken/part-{1,4,5,6,7,8,12,13}.pdf`
+Source: `m/instructions broken/part-{1,4,5,6,7,8,12,13}.pdf`
 (parts 2, 3 marked `ZZZZ NOP` and skipped). Last upstream update: 2026-05-16.
 
 Read this first. It captures every rule we need from the 287-page guide.
@@ -230,7 +230,7 @@ Reviewer time budget: 30–45 min. After 3 revision cycles, reviewer either dire
 ## Hard Architecture authoring loop (synthesized for Task 6600)
 
 For the methodology of how to **test** prompts against a subagent before committing
-to a rubric, see `M/calibration-methodology.md` — the reusable playbook that
+to a rubric, see `m/calibration-methodology.md` — the reusable playbook that
 evolved during Task 6600.
 
 1. **Pick the tension** (see CLAUDE.md § Design tensions) and the angle.

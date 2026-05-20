@@ -1,12 +1,12 @@
 # Task 6600 — working history
 
-Working files for Task 6600 (`pytorch-torchtune-architecture`). Final deliverables live in `M/pytorch-torchtune-architecture/`, not here.
+Working files for Task 6600 (`pytorch-torchtune-architecture`). Final deliverables live in `m/pytorch-torchtune-architecture/`, not here.
 
 - **Intent:** Architecture & System Design
 - **Difficulty:** Hard (target Step 5 pass rate 0-35%)
 - **Language:** Python
 - **BASE commit:** `213f38605ff0b7b1e20f85a9e032710be04c82c9`
-- **Closest reference example:** Task 5137 (guide p220-282, distilled in `M/instructions broken/INDEX.md`).
+- **Closest reference example:** Task 5137 (guide p220-282, distilled in `m/instructions broken/INDEX.md`).
 
 ## Layout
 
@@ -18,7 +18,7 @@ Working files for Task 6600 (`pytorch-torchtune-architecture`). Final deliverabl
 
 ## What got shipped
 
-`M/pytorch-torchtune-architecture/`:
+`m/pytorch-torchtune-architecture/`:
 - `prompt_statement.md` -- locked v1 Prefix Tuning prompt (~80 words)
 - `golden_answer.md` -- ~3500 word golden, 7 sections (TL;DR / PEFT contract / 5 design forks / sequenced PR plan / honest read / limitations / files touched). **AI-drafted -- needs re-authoring before submission.**
 - `rubric.json` -- 36 criteria (17 critical / 11 bonus incl. 2 style / 8 penalty), all Part 7 limits pass. **AI-drafted -- same concern.**
@@ -45,7 +45,7 @@ Working files for Task 6600 (`pytorch-torchtune-architecture`). Final deliverabl
 
 ## Methodology notes
 
-`M/calibration-methodology.md` -- the subagent-testing playbook that evolved here. Subagents are launched with explicit isolation (no access to `CLAUDE.md` or anything under `M/`), so calibration scores reflect what a strong Claude-class model recovers from upstream torchtune source alone.
+`m/calibration-methodology.md` -- the subagent-testing playbook that evolved here. Subagents are launched with explicit isolation (no access to `CLAUDE.md` or anything under `m/`), so calibration scores reflect what a strong Claude-class model recovers from upstream torchtune source alone.
 
 ## Calibration findings (cross-cutting)
 

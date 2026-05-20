@@ -2,7 +2,7 @@
 
 This is the prompt sent to the third calibration subagent (Run 3). The next session should treat this as the working prompt unless the calibration check in `session-log.md` indicates it needs revision.
 
-**ASCII verified.** No non-ASCII characters (reviewer red flag per `M/instructions broken/INDEX.md`).
+**ASCII verified.** No non-ASCII characters (reviewer red flag per `m/instructions broken/INDEX.md`).
 
 **Word count:** ~125 words. Comparable to Task 5137's reference (~50 words), longer because of the multi-part ask (trace + diagnose + propose + scope-discipline).
 

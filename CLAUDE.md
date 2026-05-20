@@ -8,7 +8,7 @@ This is a fork of `pytorch/torchtune` being used for **Project Imperium — Agen
 
 ## Project Imperium — Instruction Guide Index
 
-Source: `M/Project Imperium _ Agentic Code QA Instruction Guide.pdf` (287 pages, last updated 2026-05-16).
+Source: `m/Project Imperium _ Agentic Code QA Instruction Guide.pdf` (287 pages, last updated 2026-05-16).
 
 | # | Section | Page |
 |---|---|---|
@@ -31,9 +31,9 @@ Source: `M/Project Imperium _ Agentic Code QA Instruction Guide.pdf` (287 pages,
 | 13d | — Example Task 5137: Architecture & System Design (Hard) | 220 |
 | 14 | Reviewer Guidelines | 283 |
 
-The guide also ships split into per-section parts under `M/instructions broken/` (parts 1–13, each tagged with its section: E2e Workflow, Repo Exploration, Task Claiming, Changelog, LLM Usage, etc.). Prefer the part files for targeted reads; the monolithic PDF is for full-doc searches.
+The guide also ships split into per-section parts under `m/instructions broken/` (parts 1–13, each tagged with its section: E2e Workflow, Repo Exploration, Task Claiming, Changelog, LLM Usage, etc.). Prefer the part files for targeted reads; the monolithic PDF is for full-doc searches.
 
-**Start here:** `M/instructions broken/INDEX.md` is the distilled, reusable summary of every rule that applies to authoring (prompt rules, golden rules, rubric rules + limits + JSON shape, difficulty bands + calibration, Task 5137 structural template, reviewer checklist, Hard Architecture authoring loop). Load it before drafting; only crack a part PDF when the index points there.
+**Start here:** `m/instructions broken/INDEX.md` is the distilled, reusable summary of every rule that applies to authoring (prompt rules, golden rules, rubric rules + limits + JSON shape, difficulty bands + calibration, Task 5137 structural template, reviewer checklist, Hard Architecture authoring loop). Load it before drafting; only crack a part PDF when the index points there.
 
 ## Project gist
 
@@ -70,8 +70,8 @@ Each at **Easy / Medium / Hard** difficulty.
   - Language: Python
   - BASE commit: `213f38605ff0b7b1e20f85a9e032710be04c82c9`
   - Closest reference example: Task 5137 (guide p220–282).
-  - **Working history:** `M/task-6600/README.md` — overview of the journey (abandoned FP8 QAT catalyst + shipped Prefix Tuning catalyst). The FP8 QAT session log is at `M/task-6600/fp8-qat-abandoned/session-log.md`. Prefix Tuning calibration evidence in `M/task-6600/prefix-tuning-shipped/`.
-  - **Final deliverables:** `M/pytorch-torchtune-architecture/` (prompt_statement.md, golden_answer.md, rubric.json, task_metadata.json, Dockerfile).
+  - **Working history:** `m/task-6600/README.md` — overview of the journey (abandoned FP8 QAT catalyst + shipped Prefix Tuning catalyst). The FP8 QAT session log is at `m/task-6600/fp8-qat-abandoned/session-log.md`. Prefix Tuning calibration evidence in `m/task-6600/prefix-tuning-shipped/`.
+  - **Final deliverables:** `m/pytorch-torchtune-architecture/` (prompt_statement.md, golden_answer.md, rubric.json, task_metadata.json, Dockerfile).
   - **Status (2026-05-20): DELIVERABLES STRUCTURALLY COMPLETE, AUTHORSHIP RISK FLAGGED.** Prompt locked (v1 Prefix Tuning). Golden + rubric AI-drafted; per May 19 meeting, both must be re-authored in human voice before Airtable QC. Next step: re-author -> Airtable QC tools -> Step 5.
 
 ## Torchtune architecture (at BASE `213f38605`)
@@ -120,6 +120,6 @@ Working map of the codebase to ground Hard Architecture prompts. Keep this ancho
 
 ## Pointers for future sessions
 
-- Container is ephemeral; only what's committed persists. The `M/` folder is committed and readable.
+- Container is ephemeral; only what's committed persists. The `m/` folder is committed and readable.
 - To read PDFs: `poppler-utils` is not preinstalled — install with `apt-get install -y poppler-utils`, then use `pdftotext -layout` or the `Read` tool's `pages` parameter.
 - Default branch for task work: `claude/read-m-project-docs-EEew4` (or whichever feature branch the session specifies).

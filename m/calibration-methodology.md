@@ -1,10 +1,10 @@
 # Calibration methodology — prompt-testing playbook
 
-The reusable methodology we evolved during Task 6600 (`M/task-6600/session-log.md`).
+The reusable methodology we evolved during Task 6600 (`m/task-6600/session-log.md`).
 Use this as the playbook for the next Hard Architecture task on this repo, or as a
 starting point for adapting to other intents (RCA, Onboarding, PR Triage).
 
-The official guide (Part 7 / `M/instructions broken/INDEX.md`) tells us *what* a Hard
+The official guide (Part 7 / `m/instructions broken/INDEX.md`) tells us *what* a Hard
 prompt should ask. This file tells us *how to find out* whether a draft prompt actually
 lands at Hard band — before sinking time into rubric design + Step 5 eval.
 
@@ -313,8 +313,8 @@ Once locked:
 
 ## Pointers
 
-- Hard prompt rules: `M/instructions broken/INDEX.md` § "Prompt rules" + "Hard-task hardening".
-- Rubric mechanics: `M/instructions broken/INDEX.md` § "Rubric rules".
-- Task 5137 structural template: `M/instructions broken/INDEX.md` § "Task 5137 as a structural template".
-- Worked example of this methodology: `M/task-6600/session-log.md` (full journey),
-  `M/task-6600/run-{1,2,3}-answer.md` (raw subagent outputs).
+- Hard prompt rules: `m/instructions broken/INDEX.md` § "Prompt rules" + "Hard-task hardening".
+- Rubric mechanics: `m/instructions broken/INDEX.md` § "Rubric rules".
+- Task 5137 structural template: `m/instructions broken/INDEX.md` § "Task 5137 as a structural template".
+- Worked example of this methodology: `m/task-6600/session-log.md` (full journey),
+  `m/task-6600/run-{1,2,3}-answer.md` (raw subagent outputs).

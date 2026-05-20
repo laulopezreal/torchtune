@@ -1,0 +1,278 @@
+[
+  {
+    "id": "reasoning-1001",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Identifies ALL FIVE distinct quantization integration sites in the codebase: (a) builder-time NF4 / FrozenNF4Linear / quantize_base, (b) post-construction FP8 training swap (convert_to_float8_training), (c) post-construction QAT module swap (quantizer.prepare / swap_lora_linear_with_qat), (d) mid-training fake-quant enable/disable toggle (fake_quant_after_n_steps), (e) post-training PTQ conversion (recipes/quantize.py).",
+    "rationale": "The quantization fragmentation is the architectural friction. A Hard answer must demonstrate the full map, not partial fragments. Missing builder-time NF4 in particular collapses the answer into a 'two-phase' view that misses the lifecycle reality.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-1002",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Identifies builder-time NF4 integration (FrozenNF4Linear, quantize_base flag, to_nf4) as a quantization site that lives inside model builders, separate from training-time and post-training paths, and explains it must be construction-time because NF4 changes the parameter object itself (tensor subclass).",
+    "rationale": "NF4 is the integration site every weaker answer misses. Pairing the identification with the 'why it must be construction-time' justification raises the bar from 'mentioned NF4 in passing' to 'understood the lifecycle constraint'.",
+    "dependent_on": ["reasoning-1001"]
+  },
+  {
+    "id": "reasoning-1003",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Distinguishes the existing FP8 training path (convert_to_float8_training: real FP8 matmul during full-finetune) from FP8 QAT (training-time fake-quant simulating FP8 numerics in higher-precision compute) and explains the mechanism difference, not just names them.",
+    "rationale": "The catalyst is greppable and lands the model on convert_to_float8_training. Naming both is necessary but not sufficient; the answer must articulate the mechanism gap so the FP8 QAT addition is grounded in what is genuinely missing.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-1004",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Identifies the QAT module-swap path (quantizer.prepare on FakeQuantizedLinear or swap_lora_linear_with_qat on QATLoRALinear) as a distinct lifecycle phase, AND identifies the mid-training fake-quant enable/disable toggle (fake_quant_after_n_steps, _enable_linear_fake_quant / _disable_linear_fake_quant) as yet another distinct phase.",
+    "rationale": "QAT actually has two integration moments, not one: the module swap at training start, and the per-step toggle during the loop. Strong answers separate these; weaker answers collapse them.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-1005",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Justifies the lifecycle placement of ALL FOUR core integration phases (builder-time, pre-shard module swap, mid-training toggle, post-training PTQ) with explicit 'what would break if moved' arguments: NF4 must be construction-time because the parameter object changes; FP8 training swap must precede TP plan resolution because TP dispatch is module-type-aware; QAT swap must precede load_state_dict for strict-resume key matching; PTQ must be post-training because it is destructive and depends on the trained weight distribution.",
+    "rationale": "Architectural reasoning is justification, not enumeration. The Hard-band move is articulating ALL four lifecycle constraints, not 'most of them' — partial justifications leave Medium-band depth.",
+    "dependent_on": ["reasoning-1001"]
+  },
+  {
+    "id": "reasoning-1006",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Identifies ALL THREE of: (i) QATLoRALinear's forward graph is hardcoded for int-style fake-quant (F.linear(fake_q(x), fake_q(W)) with no scheme switch), (ii) FakeQuantizeConfig as currently used is parameterized by int dtypes (torch.int4 / torch.int8), and (iii) QATLoRALinear.from_lora_linear rejects quantize_base=True (so QLoRA + QAT is not stackable today). States the implication that FP8 QAT + LoRA needs a new adapter module class OR a verified extension of FakeQuantizeConfig to float8 dtypes.",
+    "rationale": "The 'sixth scheme needs a custom forward graph' framing hinges on the int-style coupling AND the QLoRA-rejection facts. Hard-band answers tie the design back to all three code-level facts, not a generic 'might need work' hedge.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-1007",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Proposes a concrete unification or generalization mechanism (e.g., a QuantizationScheme dataclass / Protocol descriptor that bundles activation+weight fake-quant configs, swap helper, enable/disable hooks, and PTQ converter), AND defends it as the right move given the existing mode-table seam in quantization.py. A 'defend duplication only' answer that does not propose a concrete mechanism does not earn this criterion.",
+    "rationale": "The Hard-band design move. The user softened this earlier to 'credit both stances'; harder calibration tightens it back: defending duplication is acceptable in tone, but the answer must still propose a concrete extension of the existing seam, not just a 'don't change anything' position.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-1008",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Proposed mechanism honors the no-implementation-inheritance policy: uses composition, Protocols, dataclasses, free functions, or copy-paste-modify recipes. Does NOT propose a recipe base class, a scheme abstract base class, or a shared adapter superclass.",
+    "rationale": "The policy is explicit in recipe_interfaces.py:13-19 and CONTRIBUTING.md:175. A proposal that violates it is non-mergeable.",
+    "dependent_on": ["reasoning-1007"]
+  },
+  {
+    "id": "reasoning-1009",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Proposal extends the existing AdapterModule protocol (torchtune/modules/peft/_utils.py) or treats it as the natural extension surface for a new fake-quant + adapter class, rather than inventing a parallel abstraction.",
+    "rationale": "The repo already has a Protocol pattern for adapter modules. A strong answer recognizes it and builds on it; a weaker answer reinvents the surface.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-1010",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Identifies at least THREE cross-cutting limitations that should land in the PR description from among: DoRA+QAT not stackable, QLoRA-base+QAT not stackable, torch.compile blocked for distributed QAT (qat_distributed.py:147), Llama4 explicitly rejects FP8 (llama4/_parallelism.py), TP+FP8-QAT not yet supported, single-device QAT+LoRA recipe missing.",
+    "rationale": "Senior contributors enumerate known incompatibilities up front. Three demonstrates the answerer actually read multiple recipe files and the parallelism modules, not just spot-checked one.",
+    "dependent_on": []
+  },
+
+  {
+    "id": "completeness-2001",
+    "tag": "completeness",
+    "weight": "critical",
+    "description": "Names torchtune/training/quantization.py as the locus of the quantizer registry and mode tables (_quantizer_to_mode, _quantizer_mode_to_disable_fake_quant, _quantizer_mode_to_enable_fake_quant).",
+    "rationale": "Naming the file alone is weak; naming the mode-table seam is the actual extension point.",
+    "dependent_on": []
+  },
+  {
+    "id": "completeness-2002",
+    "tag": "completeness",
+    "weight": "critical",
+    "description": "Names convert_to_float8_training AND identifies the call site (e.g., recipes/full_finetune_distributed.py) where it is invoked, demonstrating the answer traced the existing FP8 path to its consumer rather than just spotting the helper.",
+    "rationale": "Helper + call-site shows tracing depth. Just the helper name is grep-shallow.",
+    "dependent_on": []
+  },
+  {
+    "id": "completeness-2003",
+    "tag": "completeness",
+    "weight": "critical",
+    "description": "Names QATLoRALinear, swap_lora_linear_with_qat, AND FakeQuantizedLinear as the three existing QAT module-swap symbols a new FP8 QAT + LoRA implementation must extend or sibling.",
+    "rationale": "All three matter: FakeQuantizedLinear is the non-LoRA QAT base, QATLoRALinear is the LoRA variant, swap helper is the wiring. Missing any one is a partial map.",
+    "dependent_on": []
+  },
+  {
+    "id": "completeness-2004",
+    "tag": "completeness",
+    "weight": "critical",
+    "description": "Names at least one per-model TP-plan file (torchtune/models/*/parallelism.py, e.g. _parallelism.py) AND a Float8-specific TP plan symbol (Float8ColwiseParallel, Float8RowwiseParallel, _validate_float8_tp_plan, _get_fp8_llama_tp_training_plan).",
+    "rationale": "Distributed FP8 requires both pieces: knowing which file owns the TP plan, and knowing FP8 has its own branch. Either alone is insufficient.",
+    "dependent_on": []
+  },
+  {
+    "id": "completeness-2005",
+    "tag": "completeness",
+    "weight": "critical",
+    "description": "Names recipes/quantize.py as the post-training (PTQ) convert entry point AND names get_merged_lora_ckpt (or the LoRA-merge step) as the prerequisite before PTQ conversion of an adapter-trained model.",
+    "rationale": "The 'deploys as actual FP8 at inference' half requires both the PTQ recipe and the awareness that adapters must be merged into the base weights first. Missing the merge step indicates the answer did not think through the deployment path.",
+    "dependent_on": []
+  },
+  {
+    "id": "completeness-2006",
+    "tag": "completeness",
+    "weight": "critical",
+    "description": "Names the adapter_key_filter substring match in torchtune/modules/peft/_utils.py (the 'lora' in x or 'magnitude' in x filter) as a state-dict coupling that any new adapter or quantization scheme with new state must respect or extend.",
+    "rationale": "Subtle structural coupling required for full plan correctness. Promoted from bonus to critical: an answer that misses this will silently break checkpoint save/load for any non-LoRA-named adapter parameter.",
+    "dependent_on": []
+  },
+  {
+    "id": "completeness-2007",
+    "tag": "completeness",
+    "weight": "critical",
+    "description": "States that the plan needs coverage for both single-device AND distributed environments AND notes that a single-device QAT+LoRA recipe does not currently exist (would need to be authored, not copy-modified from an existing one).",
+    "rationale": "The prompt explicitly asks for both environments. A senior contributor checks what is present today before promising both; the single-device QAT+LoRA gap is the kind of detail a plan must surface.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-2008",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Identifies drift between the existing QAT recipes: fake_quant_after_n_steps is honored in qat_single_device.py but read-and-ignored in qat_distributed.py, OR compile gating differs between them, OR equivalent concrete drift between the two QAT recipes.",
+    "rationale": "Promoted from bonus to critical. A plan that proposes two new recipes (single-device + distributed) without flagging the existing drift will re-introduce the same drift in the new pair. Catching this requires real code reading.",
+    "dependent_on": []
+  },
+
+  {
+    "id": "reasoning-3001",
+    "tag": "reasoning",
+    "weight": "bonus",
+    "description": "Identifies the 'adapter_cls = DoRALinear if use_dora else LoRALinear' if/else pattern repeated across ~35 sites in model builders as a friction point that does not scale to a third or fourth adapter class.",
+    "rationale": "Scheme-N+1 grounding. The if/else is the place future adapter classes will create churn.",
+    "dependent_on": []
+  },
+  {
+    "id": "completeness-3002",
+    "tag": "completeness",
+    "weight": "bonus",
+    "description": "Identifies a concrete latent bug in torchtune/training/quantization.py (e.g., FakeQuantizedLinear referenced in _enable_linear_fake_quant without being imported in scope, or equivalent).",
+    "rationale": "Senior contributor signal: surface a latent bug while reading the file, not just describe its public API.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-3003",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Names precompute_float8_dynamic_scale_for_fsdp (by exact name, not just 'a per-step scale hook') as present in the FP8 full-finetune recipe but absent from QAT recipes, flagging it would need attention for FP8 QAT under FSDP.",
+    "rationale": "Promoted to critical. The hook is the single concrete FSDP×FP8 surface a strong FP8-QAT plan must engage. A plan that does not surface this by name leaves a real FSDP correctness question unaddressed.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-3004",
+    "tag": "reasoning",
+    "weight": "critical",
+    "description": "Engages with the conceptual question of how FP8 fake-quant in the forward graph composes (or does not) with FP8 all-gather / FSDP FP8 scaling, flagging that these are distinct transforms that do not naively stack and stating an initial position (e.g., 'TP+FP8-QAT unsupported in initial PR').",
+    "rationale": "Promoted to critical. This is the subtle distributed-FP8 question that separates 'wired the registry' from 'understood the composability problem.' Hard-band answers must articulate a position.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-3005",
+    "tag": "reasoning",
+    "weight": "bonus",
+    "description": "Compares the proposed design or seam to an existing in-repo composition precedent (e.g., ParallelDims, the AdapterModule protocol, the mode-table registry pattern).",
+    "rationale": "Demonstrates the proposal is repo-native, not imported from generic design vocabulary.",
+    "dependent_on": []
+  },
+  {
+    "id": "completeness-3006",
+    "tag": "completeness",
+    "weight": "bonus",
+    "description": "Names validate_missing_and_unexpected_for_lora (in qat_lora_finetune_distributed.py) as a load-validation step the new FP8 QAT module must keep working, constraining adapter parameter naming.",
+    "rationale": "Subtle constraint on the new module class: its parameter names have to satisfy the existing load-validation. Senior-contributor depth signal.",
+    "dependent_on": []
+  },
+
+  {
+    "id": "style-4001",
+    "tag": "style",
+    "weight": "bonus",
+    "description": "Answer is structured (e.g., TL;DR, surfaces / lifecycle phases, fix-first proposals, tradeoffs) rather than prose-only or a flat enumeration.",
+    "rationale": "Hard-band answers carry enough material to need structure.",
+    "dependent_on": []
+  },
+  {
+    "id": "style-4002",
+    "tag": "style",
+    "weight": "bonus",
+    "description": "Cites specific file:line references throughout the answer, not just file names. At least 10 distinct file:line citations.",
+    "rationale": "Senior contributors ground claims at the line level.",
+    "dependent_on": []
+  },
+
+  {
+    "id": "reasoning-5001",
+    "tag": "reasoning",
+    "weight": "penalty",
+    "description": "Proposes an implementation-inheritance base class for recipes, schemes, or adapters (e.g., BaseQATRecipe, BaseQuantScheme, BaseAdapter) as the unification mechanism.",
+    "rationale": "Directly violates the no-implementation-inheritance policy. Non-mergeable design.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-5002",
+    "tag": "reasoning",
+    "weight": "penalty",
+    "description": "Claims that minimizing code duplication is a torchtune design goal, or proposes to refactor recipe duplication away as part of the FP8 QAT PR.",
+    "rationale": "Directly contradicts the explicit policy in recipe_interfaces.py: 'Minimizing code duplication is not the goal.'",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-5003",
+    "tag": "reasoning",
+    "weight": "penalty",
+    "description": "Claims that FP8 QAT requires edits inside the checkpointer classes (FullModelHFCheckpointer, FullModelTorchTuneCheckpointer, FullModelMetaCheckpointer) to round-trip adapter or quantization state.",
+    "rationale": "The base checkpointers are adapter/quantization-agnostic and round-trip via a single ADAPTER_KEY and the substring filter in peft/_utils.py.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-5004",
+    "tag": "reasoning",
+    "weight": "penalty",
+    "description": "Treats convert_to_float8_training as identical to FP8 QAT, or proposes calling it as the FP8 QAT implementation.",
+    "rationale": "Most common shallow-answer failure mode for this catalyst.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-5005",
+    "tag": "reasoning",
+    "weight": "penalty",
+    "description": "Proposes a naive 'unify all integration points into one place' without acknowledging that they exist at different lifecycle moments for genuine code-grounded reasons.",
+    "rationale": "Ignoring the why-of-fragmentation is the failure mode of a generic design-pattern answer.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-5006",
+    "tag": "reasoning",
+    "weight": "penalty",
+    "description": "Recommends editing 10+ model builder files (per-family _component_builders.py) to add an enable_fp8_qat=True flag, propagating the existing quantize_base if/else pattern further.",
+    "rationale": "The if/else does not scale; the right move is post-construction module swap.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-5007",
+    "tag": "reasoning",
+    "weight": "penalty",
+    "description": "Recommends 'follow the existing pattern' or 'mirror the QAT recipe' without naming the specific pattern, file, or function being mirrored.",
+    "rationale": "Hand-wavy generic-design advice. A Hard-band answer must point at the specific code the proposal is grounded in.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-5008",
+    "tag": "reasoning",
+    "weight": "penalty",
+    "description": "Recommends bundling the unification refactor (QuantizationScheme registry, or similar) with the FP8 QAT feature PR rather than landing them as separate proposals.",
+    "rationale": "CONTRIBUTING.md:178 explicitly limits generalization. Even a correct refactor should not block a feature PR; a senior contributor scopes them separately.",
+    "dependent_on": []
+  }
+]

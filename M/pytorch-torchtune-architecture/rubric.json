@@ -3,80 +3,80 @@
     "id": "reasoning-1001",
     "tag": "reasoning",
     "weight": "critical",
-    "description": "Identifies ALL FIVE distinct quantization integration sites in the codebase: (a) builder-time NF4 / FrozenNF4Linear / quantize_base, (b) post-construction FP8 training swap (convert_to_float8_training), (c) post-construction QAT module swap (quantizer.prepare / swap_lora_linear_with_qat), (d) mid-training fake-quant enable/disable toggle (fake_quant_after_n_steps), (e) post-training PTQ conversion (recipes/quantize.py).",
-    "rationale": "The quantization fragmentation is the architectural friction. A Hard answer must demonstrate the full map, not partial fragments. Missing builder-time NF4 in particular collapses the answer into a 'two-phase' view that misses the lifecycle reality.",
+    "description": "Identifies that the AdapterModule protocol's adapter_params() method is genuinely polymorphic and would accept prefix tuning unchanged, BUT that the rest of the PEFT plumbing (substring filter, merge utility, recipe wiring, HF PEFT export) is LoRA-shape-coupled. Frames the tension as 'one polymorphic seam + many LoRA-string-matched seams', not just 'add a new module'.",
+    "rationale": "The core architectural insight. A weak answer treats it as 'add a class that implements adapter_params()'; a strong answer sees that the protocol is one of seven cooperating pieces and the other six are LoRA-coupled.",
     "dependent_on": []
   },
   {
     "id": "reasoning-1002",
     "tag": "reasoning",
     "weight": "critical",
-    "description": "Identifies builder-time NF4 integration (FrozenNF4Linear, quantize_base flag, to_nf4) as a quantization site that lives inside model builders, separate from training-time and post-training paths, and explains it must be construction-time because NF4 changes the parameter object itself (tensor subclass).",
-    "rationale": "NF4 is the integration site every weaker answer misses. Pairing the identification with the 'why it must be construction-time' justification raises the bar from 'mentioned NF4 in passing' to 'understood the lifecycle constraint'.",
-    "dependent_on": ["reasoning-1001"]
+    "description": "Identifies the substring-based adapter_key_filter ('lora' in x or 'magnitude' in x) AND identifies AT LEAST THREE places it is duplicated (get_adapter_state_dict, _get_lora_modules, validate_missing_and_unexpected_for_lora, or the _is_dora sniff in recipes, or equivalent). Names this as the structural bug to fix before adding a third adapter type.",
+    "rationale": "The substring filter is the load-bearing LoRA assumption baked across the codebase. Identifying it alone is necessary; identifying the duplication count is what shows the answerer traced its blast radius.",
+    "dependent_on": []
   },
   {
     "id": "reasoning-1003",
     "tag": "reasoning",
     "weight": "critical",
-    "description": "Distinguishes the existing FP8 training path (convert_to_float8_training: real FP8 matmul during full-finetune) from FP8 QAT (training-time fake-quant simulating FP8 numerics in higher-precision compute) and explains the mechanism difference, not just names them.",
-    "rationale": "The catalyst is greppable and lands the model on convert_to_float8_training. Naming both is necessary but not sufficient; the answer must articulate the mechanism gap so the FP8 QAT addition is grounded in what is genuinely missing.",
+    "description": "Identifies that MultiHeadAttention.forward (modules/attention.py around lines 262-292) has no extension point for K/V augmentation: k_proj/v_proj produce K and V, which are consumed by _attention_call without ever being exposed to a hook or adapter. Articulates that prefix tuning requires either modifying MultiHeadAttention or wrapping it.",
+    "rationale": "Locates the actual code-level wall that prefix tuning hits. A weak answer hand-waves about 'add a hook somewhere'; a strong answer reads attention.py and identifies that K/V are not exposed.",
     "dependent_on": []
   },
   {
     "id": "reasoning-1004",
     "tag": "reasoning",
     "weight": "critical",
-    "description": "Identifies the QAT module-swap path (quantizer.prepare on FakeQuantizedLinear or swap_lora_linear_with_qat on QATLoRALinear) as a distinct lifecycle phase, AND identifies the mid-training fake-quant enable/disable toggle (fake_quant_after_n_steps, _enable_linear_fake_quant / _disable_linear_fake_quant) as yet another distinct phase.",
-    "rationale": "QAT actually has two integration moments, not one: the module swap at training start, and the per-step toggle during the loop. Strong answers separate these; weaker answers collapse them.",
-    "dependent_on": []
+    "description": "Engages with the attachment-point design question by explicitly considering at least two of: (a) modifying MultiHeadAttention with an optional kwarg, (b) wrapping at TransformerSelfAttentionLayer, (c) forward_pre_hook on attention, (d) subclassing MultiHeadAttention. Recommends one with a code-grounded justification.",
+    "rationale": "First of five Hard-band design forks. Strong answers don't just pick one; they compare and justify. Naming only one option is not sufficient.",
+    "dependent_on": ["reasoning-1003"]
   },
   {
     "id": "reasoning-1005",
     "tag": "reasoning",
     "weight": "critical",
-    "description": "Justifies the lifecycle placement of ALL FOUR core integration phases (builder-time, pre-shard module swap, mid-training toggle, post-training PTQ) with explicit 'what would break if moved' arguments: NF4 must be construction-time because the parameter object changes; FP8 training swap must precede TP plan resolution because TP dispatch is module-type-aware; QAT swap must precede load_state_dict for strict-resume key matching; PTQ must be post-training because it is destructive and depends on the trained weight distribution.",
-    "rationale": "Architectural reasoning is justification, not enumeration. The Hard-band move is articulating ALL four lifecycle constraints, not 'most of them' — partial justifications leave Medium-band depth.",
-    "dependent_on": ["reasoning-1001"]
+    "description": "Engages with the position-embedding / RoPE design question: do prefix tokens get RoPE applied? At what positions? Articulates that RoPE is applied per-token by absolute position index (referencing position_embeddings.py), and proposes either (a) prefix tokens at positions [0, prefix_len) with real tokens shifted, (b) prefix tokens special-cased outside the position space, or (c) explicitly defers/disables RoPE on prefix with rationale.",
+    "rationale": "Second design fork. Reproducibly missed across both Run 1 and Run 2. This is the strongest sequence-level discriminator: a Hard answer must engage; a Medium answer never raises the question.",
+    "dependent_on": []
   },
   {
     "id": "reasoning-1006",
     "tag": "reasoning",
     "weight": "critical",
-    "description": "Identifies ALL THREE of: (i) QATLoRALinear's forward graph is hardcoded for int-style fake-quant (F.linear(fake_q(x), fake_q(W)) with no scheme switch), (ii) FakeQuantizeConfig as currently used is parameterized by int dtypes (torch.int4 / torch.int8), and (iii) QATLoRALinear.from_lora_linear rejects quantize_base=True (so QLoRA + QAT is not stackable today). States the implication that FP8 QAT + LoRA needs a new adapter module class OR a verified extension of FakeQuantizeConfig to float8 dtypes.",
-    "rationale": "The 'sixth scheme needs a custom forward graph' framing hinges on the int-style coupling AND the QLoRA-rejection facts. Hard-band answers tie the design back to all three code-level facts, not a generic 'might need work' hedge.",
+    "description": "Engages with the KV-cache design question by comparing AT LEAST TWO alternatives: (a) pre-fill the cache at setup_caches time and shift cache_pos to start at prefix_len, vs (b) regenerate / concatenate prefix to K/V on every forward, leaving the cache untouched. Articulates the memory-vs-compute tradeoff explicitly.",
+    "rationale": "Third design fork. Requires reading kv_cache.py and reasoning about lifetime of the prefix. Picking one option without comparison is partial credit at best.",
     "dependent_on": []
   },
   {
     "id": "reasoning-1007",
     "tag": "reasoning",
     "weight": "critical",
-    "description": "Proposes a concrete unification or generalization mechanism (e.g., a QuantizationScheme dataclass / Protocol descriptor that bundles activation+weight fake-quant configs, swap helper, enable/disable hooks, and PTQ converter), AND defends it as the right move given the existing mode-table seam in quantization.py. A 'defend duplication only' answer that does not propose a concrete mechanism does not earn this criterion.",
-    "rationale": "The Hard-band design move. The user softened this earlier to 'credit both stances'; harder calibration tightens it back: defending duplication is acceptable in tone, but the answer must still propose a concrete extension of the existing seam, not just a 'don't change anything' position.",
+    "description": "Engages with the sequence-packing implication: PackedDataset (torchtune/datasets/_packed.py) resets position IDs per-sample so they start at 0; prefix tokens that shift the per-sample sequence start break this assumption. Either proposes a concrete resolution (e.g., bake prefix offset into position-ID generation) OR explicitly disables sample packing for prefix tuning with rationale.",
+    "rationale": "Fourth design fork. Reproducibly missed. Strong answers connect the model-side change to the dataset-side assumption; weak answers stop at the model boundary.",
     "dependent_on": []
   },
   {
     "id": "reasoning-1008",
     "tag": "reasoning",
     "weight": "critical",
-    "description": "Proposed mechanism honors the no-implementation-inheritance policy: uses composition, Protocols, dataclasses, free functions, or copy-paste-modify recipes. Does NOT propose a recipe base class, a scheme abstract base class, or a shared adapter superclass.",
-    "rationale": "The policy is explicit in recipe_interfaces.py:13-19 and CONTRIBUTING.md:175. A proposal that violates it is non-mergeable.",
-    "dependent_on": ["reasoning-1007"]
+    "description": "Engages with loss masking for prefix tokens: prefix tokens are not real data and should not contribute to the training loss. Identifies where in the recipe (or loss module) the mask gate lives and proposes how it must change.",
+    "rationale": "Fifth design fork. Reproducibly missed. A Hard answer notices that 'sequence length seen by the model now includes prefix tokens' has loss-side implications.",
+    "dependent_on": []
   },
   {
     "id": "reasoning-1009",
     "tag": "reasoning",
     "weight": "critical",
-    "description": "Proposal extends the existing AdapterModule protocol (torchtune/modules/peft/_utils.py) or treats it as the natural extension surface for a new fake-quant + adapter class, rather than inventing a parallel abstraction.",
-    "rationale": "The repo already has a Protocol pattern for adapter modules. A strong answer recognizes it and builds on it; a weaker answer reinvents the surface.",
+    "description": "Proposes a mechanism that honors the no-implementation-inheritance policy: composition, Protocols, dataclasses, optional kwargs, or free functions. Does NOT propose a base class for MultiHeadAttention, recipes, or adapter types as the unification mechanism.",
+    "rationale": "Policy compliance. recipe_interfaces.py:13-19 is explicit. A proposal that violates this is non-mergeable regardless of technical correctness.",
     "dependent_on": []
   },
   {
     "id": "reasoning-1010",
     "tag": "reasoning",
     "weight": "critical",
-    "description": "Identifies at least THREE cross-cutting limitations that should land in the PR description from among: DoRA+QAT not stackable, QLoRA-base+QAT not stackable, torch.compile blocked for distributed QAT (qat_distributed.py:147), Llama4 explicitly rejects FP8 (llama4/_parallelism.py), TP+FP8-QAT not yet supported, single-device QAT+LoRA recipe missing.",
-    "rationale": "Senior contributors enumerate known incompatibilities up front. Three demonstrates the answerer actually read multiple recipe files and the parallelism modules, not just spot-checked one.",
+    "description": "Identifies that get_merged_lora_ckpt is called unconditionally in the checkpoint client whenever an adapter_config is present, AND articulates that prefix tuning has no meaningful 'merge with base weights' (the prefix is part of the forward, not a delta on W). Proposes gating the call by adapter type or making it conditional on a mergeable property.",
+    "rationale": "Connects two facts: the unconditional call site, and the structural impossibility of merging prefix tuning. Strong answers identify both; weak answers stop at one.",
     "dependent_on": []
   },
 
@@ -84,64 +84,56 @@
     "id": "completeness-2001",
     "tag": "completeness",
     "weight": "critical",
-    "description": "Names torchtune/training/quantization.py as the locus of the quantizer registry and mode tables (_quantizer_to_mode, _quantizer_mode_to_disable_fake_quant, _quantizer_mode_to_enable_fake_quant).",
-    "rationale": "Naming the file alone is weak; naming the mode-table seam is the actual extension point.",
+    "description": "Names torchtune/modules/peft/_utils.py as the file containing the AdapterModule protocol, get_adapter_params, get_adapter_state_dict, and the substring filter.",
+    "rationale": "Locates the central PEFT abstraction file. Required for any code-grounded plan.",
     "dependent_on": []
   },
   {
     "id": "completeness-2002",
     "tag": "completeness",
     "weight": "critical",
-    "description": "Names convert_to_float8_training AND identifies the call site (e.g., recipes/full_finetune_distributed.py) where it is invoked, demonstrating the answer traced the existing FP8 path to its consumer rather than just spotting the helper.",
-    "rationale": "Helper + call-site shows tracing depth. Just the helper name is grep-shallow.",
+    "description": "Names BOTH LoRALinear (torchtune/modules/peft/lora.py) and DoRALinear (torchtune/modules/peft/dora.py) as the existing AdapterModule implementations, AND identifies that both wrap nn.Linear (prefix tuning structurally does not).",
+    "rationale": "Required to articulate the 'shape mismatch' between existing adapters and prefix tuning.",
     "dependent_on": []
   },
   {
     "id": "completeness-2003",
     "tag": "completeness",
     "weight": "critical",
-    "description": "Names QATLoRALinear, swap_lora_linear_with_qat, AND FakeQuantizedLinear as the three existing QAT module-swap symbols a new FP8 QAT + LoRA implementation must extend or sibling.",
-    "rationale": "All three matter: FakeQuantizedLinear is the non-LoRA QAT base, QATLoRALinear is the LoRA variant, swap helper is the wiring. Missing any one is a partial map.",
+    "description": "Names MultiHeadAttention (torchtune/modules/attention.py) AND TransformerSelfAttentionLayer (torchtune/modules/transformer.py) as the two candidate attachment surfaces for prefix tuning.",
+    "rationale": "Both attachment points must be named for the design-fork comparison to make sense.",
     "dependent_on": []
   },
   {
     "id": "completeness-2004",
     "tag": "completeness",
     "weight": "critical",
-    "description": "Names at least one per-model TP-plan file (torchtune/models/*/parallelism.py, e.g. _parallelism.py) AND a Float8-specific TP plan symbol (Float8ColwiseParallel, Float8RowwiseParallel, _validate_float8_tp_plan, _get_fp8_llama_tp_training_plan).",
-    "rationale": "Distributed FP8 requires both pieces: knowing which file owns the TP plan, and knowing FP8 has its own branch. Either alone is insufficient.",
+    "description": "Names KVCache (torchtune/modules/kv_cache.py) AND identifies its fixed pre-allocated shape (batch, num_kv_heads, max_seq_len, head_dim) or its cache_pos tracking as the relevant constraint.",
+    "rationale": "Required to articulate the pre-fill vs regenerate design fork.",
     "dependent_on": []
   },
   {
     "id": "completeness-2005",
     "tag": "completeness",
     "weight": "critical",
-    "description": "Names recipes/quantize.py as the post-training (PTQ) convert entry point AND names get_merged_lora_ckpt (or the LoRA-merge step) as the prerequisite before PTQ conversion of an adapter-trained model.",
-    "rationale": "The 'deploys as actual FP8 at inference' half requires both the PTQ recipe and the awareness that adapters must be merged into the base weights first. Missing the merge step indicates the answer did not think through the deployment path.",
+    "description": "Names recipes/lora_finetune_distributed.py (or recipes/lora_finetune_single_device.py) as the recipe template to copy-paste-modify under the no-implementation-inheritance policy, AND notes that two new recipes are needed (single-device + distributed) rather than folding into existing ones.",
+    "rationale": "Required to demonstrate awareness of the recipe-duplication policy as it applies here.",
     "dependent_on": []
   },
   {
     "id": "completeness-2006",
     "tag": "completeness",
     "weight": "critical",
-    "description": "Names the adapter_key_filter substring match in torchtune/modules/peft/_utils.py (the 'lora' in x or 'magnitude' in x filter) as a state-dict coupling that any new adapter or quantization scheme with new state must respect or extend.",
-    "rationale": "Subtle structural coupling required for full plan correctness. Promoted from bonus to critical: an answer that misses this will silently break checkpoint save/load for any non-LoRA-named adapter parameter.",
+    "description": "Names torchtune/models/convert_weights.py (specifically tune_to_peft_adapter_weights and/or tune_to_peft_adapter_config) as the HuggingFace PEFT export path that is LoRA-specific and would need either a new conversion path or an explicit skip for prefix tuning.",
+    "rationale": "Required to articulate the HF PEFT export incompatibility. Greppable but specific enough that weak answers miss it.",
     "dependent_on": []
   },
   {
     "id": "completeness-2007",
     "tag": "completeness",
     "weight": "critical",
-    "description": "States that the plan needs coverage for both single-device AND distributed environments AND notes that a single-device QAT+LoRA recipe does not currently exist (would need to be authored, not copy-modified from an existing one).",
-    "rationale": "The prompt explicitly asks for both environments. A senior contributor checks what is present today before promising both; the single-device QAT+LoRA gap is the kind of detail a plan must surface.",
-    "dependent_on": []
-  },
-  {
-    "id": "reasoning-2008",
-    "tag": "reasoning",
-    "weight": "critical",
-    "description": "Identifies drift between the existing QAT recipes: fake_quant_after_n_steps is honored in qat_single_device.py but read-and-ignored in qat_distributed.py, OR compile gating differs between them, OR equivalent concrete drift between the two QAT recipes.",
-    "rationale": "Promoted from bonus to critical. A plan that proposes two new recipes (single-device + distributed) without flagging the existing drift will re-introduce the same drift in the new pair. Catching this requires real code reading.",
+    "description": "Names torchtune/generation/_generation.py (or the generation loop / setup_caches path) AND identifies that prefix vectors must be present at every decode step during inference, not just during training.",
+    "rationale": "Connects the training-side adapter to the inference-side generation path. Reproducibly missed by Run 2; required to demonstrate end-to-end thinking.",
     "dependent_on": []
   },
 
@@ -149,48 +141,56 @@
     "id": "reasoning-3001",
     "tag": "reasoning",
     "weight": "bonus",
-    "description": "Identifies the 'adapter_cls = DoRALinear if use_dora else LoRALinear' if/else pattern repeated across ~35 sites in model builders as a friction point that does not scale to a third or fourth adapter class.",
-    "rationale": "Scheme-N+1 grounding. The if/else is the place future adapter classes will create churn.",
+    "description": "Identifies the ~35 sites of `adapter_cls = DoRALinear if use_dora else LoRALinear` (or equivalent) across model component builders as a separate friction point that does NOT scale to a third adapter class, and proposes a post-construction attachment path that bypasses it.",
+    "rationale": "Senior-contributor depth: cross-family pattern recognition. Both runs underweighted this.",
     "dependent_on": []
   },
   {
-    "id": "completeness-3002",
+    "id": "reasoning-3002",
+    "tag": "reasoning",
+    "weight": "bonus",
+    "description": "Identifies the `hasattr(m, 'initialize_dora_magnitude')` (or equivalent) pattern in the recipe as the existing convention for 'adapter needs a per-type post-load initialization step', and proposes following the same pattern for prefix-tuning's initialization (e.g., zero-init, Gaussian, or Li & Liang reparameterization).",
+    "rationale": "Repo-native pattern reuse. Demonstrates the answerer read the recipe's model-setup block carefully.",
+    "dependent_on": []
+  },
+  {
+    "id": "completeness-3003",
     "tag": "completeness",
     "weight": "bonus",
-    "description": "Identifies a concrete latent bug in torchtune/training/quantization.py (e.g., FakeQuantizedLinear referenced in _enable_linear_fake_quant without being imported in scope, or equivalent).",
-    "rationale": "Senior contributor signal: surface a latent bug while reading the file, not just describe its public API.",
-    "dependent_on": []
-  },
-  {
-    "id": "reasoning-3003",
-    "tag": "reasoning",
-    "weight": "critical",
-    "description": "Names precompute_float8_dynamic_scale_for_fsdp (by exact name, not just 'a per-step scale hook') as present in the FP8 full-finetune recipe but absent from QAT recipes, flagging it would need attention for FP8 QAT under FSDP.",
-    "rationale": "Promoted to critical. The hook is the single concrete FSDP×FP8 surface a strong FP8-QAT plan must engage. A plan that does not surface this by name leaves a real FSDP correctness question unaddressed.",
+    "description": "Names HuggingFace PEFT's actual PrefixTuningConfig schema (peft_type: 'PREFIX_TUNING' and/or num_virtual_tokens) and notes that the current torchtune-to-HF conversion path is LoRA-only.",
+    "rationale": "Shows the answerer knows the external-facing standard exists, even if it's deferred.",
     "dependent_on": []
   },
   {
     "id": "reasoning-3004",
     "tag": "reasoning",
-    "weight": "critical",
-    "description": "Engages with the conceptual question of how FP8 fake-quant in the forward graph composes (or does not) with FP8 all-gather / FSDP FP8 scaling, flagging that these are distinct transforms that do not naively stack and stating an initial position (e.g., 'TP+FP8-QAT unsupported in initial PR').",
-    "rationale": "Promoted to critical. This is the subtle distributed-FP8 question that separates 'wired the registry' from 'understood the composability problem.' Hard-band answers must articulate a position.",
+    "weight": "bonus",
+    "description": "Identifies that the prefix K/V must be in [batch, num_kv_heads, prefix_len, head_dim] shape and concatenated BEFORE the GQA expand to num_heads (attention.py around lines 287-290), otherwise memory is wasted by a factor of q_per_kv.",
+    "rationale": "Subtle GQA semantics. Only Run 1 caught this. Strong micro-discriminator.",
     "dependent_on": []
   },
   {
     "id": "reasoning-3005",
     "tag": "reasoning",
     "weight": "bonus",
-    "description": "Compares the proposed design or seam to an existing in-repo composition precedent (e.g., ParallelDims, the AdapterModule protocol, the mode-table registry pattern).",
-    "rationale": "Demonstrates the proposal is repo-native, not imported from generic design vocabulary.",
+    "description": "Identifies that flex attention's BlockMask (torchtune/modules/attention_utils.py) cannot be cleanly mutated to add prefix columns, AND proposes a concrete resolution (e.g., construct BlockMask including prefix from the start, or disable flex attention when prefix tuning is on).",
+    "rationale": "Specific code-level constraint on the mask side. Strong signal of deep reading.",
     "dependent_on": []
   },
   {
-    "id": "completeness-3006",
-    "tag": "completeness",
+    "id": "reasoning-3006",
+    "tag": "reasoning",
     "weight": "bonus",
-    "description": "Names validate_missing_and_unexpected_for_lora (in qat_lora_finetune_distributed.py) as a load-validation step the new FP8 QAT module must keep working, constraining adapter parameter naming.",
-    "rationale": "Subtle constraint on the new module class: its parameter names have to satisfy the existing load-validation. Senior-contributor depth signal.",
+    "description": "Identifies the FSDP × small-per-layer-parameter interaction: prefix tensors are small relative to layer weights, the sharding policy shards on TransformerSelfAttentionLayer boundaries, and the meta-init + to_empty path requires the new module to implement to_empty (with DoRALinear.to_empty cited as the template).",
+    "rationale": "Distributed correctness consideration. Run 1 raised this as honest uncertainty; only senior contributors do that.",
+    "dependent_on": []
+  },
+  {
+    "id": "reasoning-3007",
+    "tag": "reasoning",
+    "weight": "bonus",
+    "description": "Proposes a sequenced PR plan with at least three discrete PRs: (1) refactor the shared PEFT abstractions, (2) add the attention-side hook or surgical change, (3) ship the prefix-tuning module + builder + recipes + configs. Explicitly does NOT bundle the refactor with the feature.",
+    "rationale": "Senior contributors land structural changes ahead of feature PRs for reviewability. Anti-bundling is a positive signal.",
     "dependent_on": []
   },
 
@@ -198,7 +198,7 @@
     "id": "style-4001",
     "tag": "style",
     "weight": "bonus",
-    "description": "Answer is structured (e.g., TL;DR, surfaces / lifecycle phases, fix-first proposals, tradeoffs) rather than prose-only or a flat enumeration.",
+    "description": "Answer is structured (e.g., TL;DR / current contract / what breaks / design forks / implementation plan / files-touched) rather than prose-only or a flat enumeration.",
     "rationale": "Hard-band answers carry enough material to need structure.",
     "dependent_on": []
   },
@@ -206,7 +206,7 @@
     "id": "style-4002",
     "tag": "style",
     "weight": "bonus",
-    "description": "Cites specific file:line references throughout the answer, not just file names. At least 10 distinct file:line citations.",
+    "description": "Cites at least 10 distinct file:line references throughout the answer, not just file names.",
     "rationale": "Senior contributors ground claims at the line level.",
     "dependent_on": []
   },
@@ -215,64 +215,64 @@
     "id": "reasoning-5001",
     "tag": "reasoning",
     "weight": "penalty",
-    "description": "Proposes an implementation-inheritance base class for recipes, schemes, or adapters (e.g., BaseQATRecipe, BaseQuantScheme, BaseAdapter) as the unification mechanism.",
-    "rationale": "Directly violates the no-implementation-inheritance policy. Non-mergeable design.",
+    "description": "Proposes an implementation-inheritance base class for MultiHeadAttention, TransformerSelfAttentionLayer, recipes, or adapter types as the unification mechanism.",
+    "rationale": "Directly violates the no-implementation-inheritance policy. Non-mergeable.",
     "dependent_on": []
   },
   {
     "id": "reasoning-5002",
     "tag": "reasoning",
     "weight": "penalty",
-    "description": "Claims that minimizing code duplication is a torchtune design goal, or proposes to refactor recipe duplication away as part of the FP8 QAT PR.",
-    "rationale": "Directly contradicts the explicit policy in recipe_interfaces.py: 'Minimizing code duplication is not the goal.'",
+    "description": "Claims that minimizing code duplication is a torchtune design goal, or treats recipe duplication as a defect to be refactored away as part of this PR.",
+    "rationale": "Directly contradicts recipe_interfaces.py:18-19. The policy endorses duplication.",
     "dependent_on": []
   },
   {
     "id": "reasoning-5003",
     "tag": "reasoning",
     "weight": "penalty",
-    "description": "Claims that FP8 QAT requires edits inside the checkpointer classes (FullModelHFCheckpointer, FullModelTorchTuneCheckpointer, FullModelMetaCheckpointer) to round-trip adapter or quantization state.",
-    "rationale": "The base checkpointers are adapter/quantization-agnostic and round-trip via a single ADAPTER_KEY and the substring filter in peft/_utils.py.",
+    "description": "Proposes naming the prefix-tuning parameters with 'lora' or 'magnitude' substrings (e.g., lora_prefix_k) to satisfy the existing substring filter without refactoring it.",
+    "rationale": "Smuggles a third adapter type into the LoRA naming convention. Leaves worse archaeology debt for the next contributor. Anti-pattern explicitly called out by Run 2 as Path A's bad move.",
     "dependent_on": []
   },
   {
     "id": "reasoning-5004",
     "tag": "reasoning",
     "weight": "penalty",
-    "description": "Treats convert_to_float8_training as identical to FP8 QAT, or proposes calling it as the FP8 QAT implementation.",
-    "rationale": "Most common shallow-answer failure mode for this catalyst.",
+    "description": "Proposes extending get_merged_lora_ckpt to handle prefix tuning as if it were a residual-on-Linear update, or otherwise treats prefix vectors as mergeable into base weights.",
+    "rationale": "Prefix tuning is fundamentally not a residual-on-Linear update. Conflating them shows the answerer didn't internalize the structural difference.",
     "dependent_on": []
   },
   {
     "id": "reasoning-5005",
     "tag": "reasoning",
     "weight": "penalty",
-    "description": "Proposes a naive 'unify all integration points into one place' without acknowledging that they exist at different lifecycle moments for genuine code-grounded reasons.",
-    "rationale": "Ignoring the why-of-fragmentation is the failure mode of a generic design-pattern answer.",
+    "description": "Proposes editing the ~35 model-builder if/else sites manually (extending `adapter_cls = ... if ... else ...` to a three-way or larger branch) instead of using post-construction attachment / optional kwarg injection.",
+    "rationale": "The if/else pattern does not scale to N adapter types. Recommending more of the same pattern is anti-Hard.",
     "dependent_on": []
   },
   {
     "id": "reasoning-5006",
     "tag": "reasoning",
     "weight": "penalty",
-    "description": "Recommends editing 10+ model builder files (per-family _component_builders.py) to add an enable_fp8_qat=True flag, propagating the existing quantize_base if/else pattern further.",
-    "rationale": "The if/else does not scale; the right move is post-construction module swap.",
+    "description": "Claims that the checkpointer classes themselves (FullModelHFCheckpointer, FullModelTorchTuneCheckpointer, FullModelMetaCheckpointer) need editing for prefix tuning.",
+    "rationale": "The checkpointer classes are mostly adapter-agnostic; the friction is in _checkpoint_client.py call sites and convert_weights.py conversion helpers, not the checkpointer class internals.",
     "dependent_on": []
   },
   {
     "id": "reasoning-5007",
     "tag": "reasoning",
     "weight": "penalty",
-    "description": "Recommends 'follow the existing pattern' or 'mirror the QAT recipe' without naming the specific pattern, file, or function being mirrored.",
-    "rationale": "Hand-wavy generic-design advice. A Hard-band answer must point at the specific code the proposal is grounded in.",
+    "description": "Recommends bundling the PEFT-abstraction refactor (substring filter generalization, get_merged_lora_ckpt gating, etc.) with the prefix-tuning feature in a single PR rather than landing them as sequenced PRs.",
+    "rationale": "CONTRIBUTING.md explicitly limits generalization. A senior contributor scopes the refactor and the feature separately even when both are required.",
     "dependent_on": []
   },
   {
     "id": "reasoning-5008",
     "tag": "reasoning",
     "weight": "penalty",
-    "description": "Recommends bundling the unification refactor (QuantizationScheme registry, or similar) with the FP8 QAT feature PR rather than landing them as separate proposals.",
-    "rationale": "CONTRIBUTING.md:178 explicitly limits generalization. Even a correct refactor should not block a feature PR; a senior contributor scopes them separately.",
+    "description": "Recommends 'follow the existing pattern' or 'mirror the LoRA recipe' without naming the specific pattern, file, or function being mirrored.",
+    "rationale": "Hand-wavy generic-design advice. A Hard-band answer must point at the specific code the proposal is grounded in.",
     "dependent_on": []
   }
 ]

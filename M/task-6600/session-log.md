@@ -10,9 +10,10 @@
 ## Quick start for the next session
 
 1. **Read first:** `M/instructions broken/INDEX.md` (rubric mechanics, prompt rules, Hard authoring loop).
-2. **Then this file** for context on what we tried, what we picked, and why.
-3. **Then:** `M/task-6600/prompt-current.md` (the locked prompt) and the three `run-N-answer.md` files (calibration evidence).
-4. **Next concrete step:** draft `rubric.json` (target ~30 criteria) calibrated against the three runs. See the "Rubric design guidance" section below.
+2. **Then the methodology:** `M/calibration-methodology.md` — the reusable subagent-testing playbook this session evolved. Read before launching any further calibration runs.
+3. **Then this file** for context on what we tried, what we picked, and why.
+4. **Then:** `M/task-6600/prompt-current.md` (the locked prompt) and the three `run-N-answer.md` files (calibration evidence).
+5. **Next concrete step:** draft `rubric.json` (target ~30 criteria) calibrated against the three runs. See the "Rubric design guidance" section below.
 
 ---
 

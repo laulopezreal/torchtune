@@ -229,6 +229,10 @@ Reviewer time budget: 30–45 min. After 3 revision cycles, reviewer either dire
 
 ## Hard Architecture authoring loop (synthesized for Task 6600)
 
+For the methodology of how to **test** prompts against a subagent before committing
+to a rubric, see `M/calibration-methodology.md` — the reusable playbook that
+evolved during Task 6600.
+
 1. **Pick the tension** (see CLAUDE.md § Design tensions) and the angle.
 2. **Write a ~50-100-word prompt** that names the feature/goal and the kind of guidance wanted; do *not* name files.
 3. **Draft the golden answer** sectioned conclusion-first, naming ~5–10 concrete files/functions, defining any new types/configs, walking the modes/tradeoffs, anchoring tradeoffs in real risks (blast radius, security, maintenance burden).
